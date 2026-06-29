@@ -25,6 +25,7 @@ asynchronous acceptance response returned by the platform.
 - Loading state and five-second success/error toast notifications.
 - Development proxy for the local API Gateway.
 - Production Nginx proxy for the Compose network.
+- Non-cacheable HTML with immutable fingerprinted static assets.
 - Multi-stage Docker image.
 - GitHub Actions build and GHCR publishing.
 

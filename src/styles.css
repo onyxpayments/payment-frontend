@@ -429,9 +429,9 @@ button span {
 }
 
 .feedback.error {
-  border-color: rgba(248, 113, 113, 0.22);
-  color: #fca5a5;
-  background: rgba(127, 29, 29, 0.2);
+  border-color: rgba(248, 113, 113, 0.48);
+  color: #fee2e2;
+  background: rgba(127, 29, 29, 0.94);
 }
 
 .feedback.success {
