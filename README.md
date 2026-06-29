@@ -15,6 +15,8 @@ asynchronous acceptance response returned by the platform.
 - Client-side UUID generation.
 - Optional HTML URL validation with a safe demo fallback for
   `notification_url`.
+- Field-level validation for names, personal IDs, amounts, currencies, and
+  webhook URLs.
 - Obsidian-inspired black and violet visual theme.
 - Basic HTML form validation.
 - Loading, success, and error states.
@@ -132,8 +134,8 @@ through CORS.
 make install       # Install npm dependencies
 make dev           # Start the Vite development server
 make build         # Create the production build
-make lint          # Run the current build-based validation
-make test          # Run the current build smoke test
+make lint           # Run unit tests and the production build
+make test           # Run validation unit tests
 make docker-build  # Build the local Docker image
 ```
 
@@ -144,10 +146,11 @@ npm run dev
 npm run build
 npm run preview
 npm run test
+npm run check
 ```
 
-The project currently uses a successful production build as its smoke test.
-Dedicated unit tests and ESLint rules have not yet been added.
+Validation rules are covered with Node's built-in test runner. `npm run check`
+runs both unit tests and the production build. ESLint has not been added yet.
 
 ## Docker
 
@@ -210,7 +213,7 @@ image.
 
 - The interface only displays the immediate `RECEIVED` response.
 - It does not poll for or display the final callback status.
-- There are no dedicated unit or end-to-end tests yet.
+- There are no browser-level end-to-end tests yet.
 - The production proxy expects the API Gateway to use the Compose service name
   `api-gateway`.
 

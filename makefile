@@ -8,11 +8,10 @@ build:
 	npm run build
 
 lint:
-	npm run build
+	npm run check
 
 test:
 	npm run test
 
 docker-build:
 	docker build -t payment-frontend .
-

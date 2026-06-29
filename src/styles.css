@@ -211,6 +211,13 @@ label > span {
   font-weight: 600;
 }
 
+label > .field-error {
+  color: #fca5a5;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
 input,
 select,
 .amount-input {
@@ -244,6 +251,16 @@ select:focus,
   box-shadow:
     0 0 0 3px rgba(139, 92, 246, 0.14),
     0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+input[aria-invalid="true"],
+select[aria-invalid="true"] {
+  border-color: rgba(248, 113, 113, 0.72);
+}
+
+.amount-input:has(input[aria-invalid="true"]) {
+  border-color: rgba(248, 113, 113, 0.72);
+  box-shadow: 0 0 0 3px rgba(248, 113, 113, 0.08);
 }
 
 .amount-input {

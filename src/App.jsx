@@ -1,5 +1,10 @@
 import { useState } from "react";
 
+import {
+  buildPaymentPayload,
+  validatePaymentForm,
+} from "./validation";
+
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 const DUMMY_NOTIFICATION_URL =
   "https://merchant.example/webhooks/payments";
@@ -35,31 +40,80 @@ export default function App() {
   const [form, setForm] = useState(initialForm);
   const [result, setResult] = useState(null);
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [touched, setTouched] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleChange(event) {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
+    const normalizedValue =
+      name === "personalId" ? value.replace(/\D/g, "") : value;
+    const nextForm = { ...form, [name]: normalizedValue };
+    setForm(nextForm);
+    setError("");
+    setResult(null);
+
+    if (touched[name]) {
+      const nextErrors = validatePaymentForm(nextForm);
+      setFieldErrors((current) => ({
+        ...current,
+        [name]: nextErrors[name],
+      }));
+    }
+  }
+
+  function handleBlur(event) {
+    const { name } = event.target;
+    setTouched((current) => ({ ...current, [name]: true }));
+    const nextErrors = validatePaymentForm(form);
+    setFieldErrors((current) => ({
+      ...current,
+      [name]: nextErrors[name],
+    }));
+  }
+
+  function errorProps(name) {
+    const message = fieldErrors[name];
+    return {
+      "aria-invalid": Boolean(message),
+      "aria-describedby": message ? `${name}-error` : undefined,
+    };
+  }
+
+  function fieldError(name) {
+    if (!fieldErrors[name]) return null;
+    return (
+      <span className="field-error" id={`${name}-error`} role="alert">
+        {fieldErrors[name]}
+      </span>
+    );
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
     setResult(null);
+
+    const validationErrors = validatePaymentForm(form);
+    if (Object.keys(validationErrors).length > 0) {
+      setFieldErrors(validationErrors);
+      setTouched(
+        Object.fromEntries(
+          Object.keys(initialForm).map((field) => [field, true]),
+        ),
+      );
+      setError("Revisa los campos marcados antes de continuar.");
+      return;
+    }
+
+    setFieldErrors({});
     setIsSubmitting(true);
 
-    const payload = {
-      transaction_id: createTransactionId(),
-      amount: Number(form.amount),
-      currency: form.currency,
-      notification_url:
-        form.notificationUrl.trim() || DUMMY_NOTIFICATION_URL,
-      customer: {
-        first_name: form.firstName.trim(),
-        last_name: form.lastName.trim(),
-        personal_id: form.personalId.trim(),
-      },
-    };
+    const payload = buildPaymentPayload(
+      form,
+      createTransactionId(),
+      DUMMY_NOTIFICATION_URL,
+    );
 
     try {
       const response = await fetch(`${API_URL}/payments`, {
@@ -76,6 +130,8 @@ export default function App() {
 
       setResult(body);
       setForm(initialForm);
+      setTouched({});
+      setFieldErrors({});
     } catch (requestError) {
       const message =
         requestError instanceof TypeError
@@ -124,7 +180,7 @@ export default function App() {
           <span className="secure-label">Entorno seguro</span>
         </div>
 
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} noValidate>
           <div className="field-row amount-row">
             <label>
               <span>Monto</span>
@@ -132,15 +188,17 @@ export default function App() {
                 <span>$</span>
                 <input
                   name="amount"
-                  type="number"
-                  min="1"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   value={form.amount}
                   onChange={handleChange}
-                  placeholder="100.000"
-                  required
+                  onBlur={handleBlur}
+                  placeholder="100000.00"
+                  maxLength={20}
+                  {...errorProps("amount")}
                 />
               </div>
+              {fieldError("amount")}
             </label>
 
             <label className="currency-field">
@@ -149,11 +207,14 @@ export default function App() {
                 name="currency"
                 value={form.currency}
                 onChange={handleChange}
+                onBlur={handleBlur}
+                {...errorProps("currency")}
               >
                 <option value="COP">COP</option>
                 <option value="USD">USD</option>
                 <option value="EUR">EUR</option>
               </select>
+              {fieldError("currency")}
             </label>
           </div>
 
@@ -168,10 +229,14 @@ export default function App() {
                 name="firstName"
                 value={form.firstName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="Juan"
                 autoComplete="given-name"
-                required
+                minLength={2}
+                maxLength={100}
+                {...errorProps("firstName")}
               />
+              {fieldError("firstName")}
             </label>
 
             <label>
@@ -180,10 +245,14 @@ export default function App() {
                 name="lastName"
                 value={form.lastName}
                 onChange={handleChange}
+                onBlur={handleBlur}
                 placeholder="Bello"
                 autoComplete="family-name"
-                required
+                minLength={2}
+                maxLength={100}
+                {...errorProps("lastName")}
               />
+              {fieldError("lastName")}
             </label>
           </div>
 
@@ -193,10 +262,16 @@ export default function App() {
               name="personalId"
               value={form.personalId}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="Ej. 1012345678"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              minLength={5}
+              maxLength={20}
               autoComplete="off"
-              required
+              {...errorProps("personalId")}
             />
+            {fieldError("personalId")}
           </label>
 
           <label>
@@ -206,9 +281,13 @@ export default function App() {
               type="url"
               value={form.notificationUrl}
               onChange={handleChange}
+              onBlur={handleBlur}
               placeholder="https://comercio.example/webhooks/pagos"
               autoComplete="url"
+              maxLength={2048}
+              {...errorProps("notificationUrl")}
             />
+            {fieldError("notificationUrl")}
           </label>
 
           <button type="submit" disabled={isSubmitting}>
