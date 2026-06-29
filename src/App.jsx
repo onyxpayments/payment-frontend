@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   buildPaymentPayload,
   validatePaymentForm,
 } from "./validation";
 import {
-  buildRequestHeaders,
+  buildPaymentRequestOptions,
   emptyHeader,
   hasHeaderErrors,
   validateHeaderRows,
@@ -52,14 +52,23 @@ export default function App() {
   const [headerErrors, setHeaderErrors] = useState([{}]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!error && !result) return undefined;
+
+    const timeoutId = window.setTimeout(() => {
+      setError("");
+      setResult(null);
+    }, 5000);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [error, result]);
+
   function handleChange(event) {
     const { name, value } = event.target;
     const normalizedValue =
       name === "personalId" ? value.replace(/\D/g, "") : value;
     const nextForm = { ...form, [name]: normalizedValue };
     setForm(nextForm);
-    setError("");
-    setResult(null);
 
     if (touched[name]) {
       const nextErrors = validatePaymentForm(nextForm);
@@ -103,8 +112,6 @@ export default function App() {
     );
     setHeaderRows(nextRows);
     setHeaderErrors(validateHeaderRows(nextRows));
-    setError("");
-    setResult(null);
   }
 
   function addHeader() {
@@ -152,9 +159,7 @@ export default function App() {
 
     try {
       const response = await fetch(`${API_URL}/payments`, {
-        method: "POST",
-        headers: buildRequestHeaders(headerRows),
-        body: JSON.stringify(payload),
+        ...buildPaymentRequestOptions(headerRows, payload),
       });
 
       const body = await response.json().catch(() => null);
@@ -167,6 +172,8 @@ export default function App() {
       setForm(initialForm);
       setTouched({});
       setFieldErrors({});
+      setHeaderRows([emptyHeader()]);
+      setHeaderErrors([{}]);
     } catch (requestError) {
       const message =
         requestError instanceof TypeError
@@ -418,14 +425,18 @@ export default function App() {
         </form>
 
         {error && (
-          <div className="feedback error" role="alert">
+          <div className="feedback toast error" role="alert">
             <strong>No pudimos procesar el pago</strong>
             <span>{error}</span>
           </div>
         )}
 
         {result && (
-          <div className="feedback success" role="status">
+          <div
+            className="feedback toast success"
+            role="status"
+            aria-live="polite"
+          >
             <div>
               <strong>Transacción recibida</strong>
               <span>Estado: {result.status}</span>

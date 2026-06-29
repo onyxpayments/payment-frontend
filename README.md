@@ -19,8 +19,10 @@ asynchronous acceptance response returned by the platform.
   webhook URLs.
 - Dynamic key/value request header editor with duplicate and injection
   validation.
+- No browser cookies or implicit browser credentials are sent.
+- Custom headers are cleared after a successful transaction.
 - Basic HTML form validation.
-- Loading, success, and error states.
+- Loading state and five-second success/error toast notifications.
 - Development proxy for the local API Gateway.
 - Production Nginx proxy for the Compose network.
 - Multi-stage Docker image.

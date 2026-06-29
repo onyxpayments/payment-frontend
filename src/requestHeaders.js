@@ -65,3 +65,13 @@ export function buildRequestHeaders(rows) {
 
   return headers;
 }
+
+export function buildPaymentRequestOptions(rows, payload) {
+  return {
+    method: "POST",
+    headers: buildRequestHeaders(rows),
+    credentials: "omit",
+    cache: "no-store",
+    body: JSON.stringify(payload),
+  };
+}

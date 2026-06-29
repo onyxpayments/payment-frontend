@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  buildPaymentRequestOptions,
   buildRequestHeaders,
   hasHeaderErrors,
   validateHeaderRows,
@@ -49,4 +50,17 @@ test("rejects browser-controlled headers and newline injection", () => {
 
   assert.match(errors[0].key, /controlado por el navegador/);
   assert.match(errors[1].value, /saltos de línea/);
+});
+
+test("omits browser credentials while preserving explicit headers", () => {
+  const payload = { transaction_id: "trx-123" };
+  const options = buildPaymentRequestOptions(
+    [{ key: "Authorization", value: "Basic explicit-value" }],
+    payload,
+  );
+
+  assert.equal(options.credentials, "omit");
+  assert.equal(options.cache, "no-store");
+  assert.equal(options.headers.Authorization, "Basic explicit-value");
+  assert.equal(options.body, JSON.stringify(payload));
 });
