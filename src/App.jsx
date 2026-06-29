@@ -1,10 +1,13 @@
 import { useState } from "react";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
+const DUMMY_NOTIFICATION_URL =
+  "https://merchant.example/webhooks/payments";
 
 const initialForm = {
   amount: "",
   currency: "COP",
+  notificationUrl: "",
   firstName: "",
   lastName: "",
   personalId: "",
@@ -49,6 +52,8 @@ export default function App() {
       transaction_id: createTransactionId(),
       amount: Number(form.amount),
       currency: form.currency,
+      notification_url:
+        form.notificationUrl.trim() || DUMMY_NOTIFICATION_URL,
       customer: {
         first_name: form.firstName.trim(),
         last_name: form.lastName.trim(),
@@ -194,6 +199,18 @@ export default function App() {
             />
           </label>
 
+          <label>
+            <span>URL de notificaciones (opcional por ahora)</span>
+            <input
+              name="notificationUrl"
+              type="url"
+              value={form.notificationUrl}
+              onChange={handleChange}
+              placeholder="https://comercio.example/webhooks/pagos"
+              autoComplete="url"
+            />
+          </label>
+
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Procesando…" : "Procesar pago"}
             {!isSubmitting && <span aria-hidden="true">→</span>}
@@ -224,4 +241,3 @@ export default function App() {
     </main>
   );
 }
-

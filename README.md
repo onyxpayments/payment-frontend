@@ -1,67 +1,222 @@
 # OnyxPay Payment Frontend
 
-Formulario React para enviar transacciones al API Gateway de OnyxPay.
+Simple React interface for submitting test payments to the OnyxPay API Gateway.
 
-## Requisitos
+The application collects an amount, currency, customer identity, and an
+optional merchant notification URL. It generates a transaction UUID in the
+browser and sends the payment to `POST /payments`. It displays the immediate
+asynchronous acceptance response returned by the platform.
 
-- Node.js 20 o superior
-- El stack de OnyxPay ejecutándose con el API Gateway en `localhost:8003`
+> This interface uses the OnyxPay Mock Bank. It does not process real money.
 
-## Desarrollo
+## Features
 
-```bash
-npm install
-npm run dev
-```
+- Responsive payment form.
+- Client-side UUID generation.
+- Optional HTML URL validation with a safe demo fallback for
+  `notification_url`.
+- Obsidian-inspired black and violet visual theme.
+- Basic HTML form validation.
+- Loading, success, and error states.
+- Development proxy for the local API Gateway.
+- Production Nginx proxy for the Compose network.
+- Multi-stage Docker image.
+- GitHub Actions build and GHCR publishing.
 
-Abre `http://localhost:5173`. Vite redirige automáticamente las solicitudes
-desde `/api/payments` hacia `http://localhost:8003/payments`.
-
-## Configuración
-
-Para usar otro API Gateway, crea `.env.local`:
+## Platform Flow
 
 ```text
-VITE_API_URL=http://localhost:8003
+Browser
+  │
+  │ POST /api/payments
+  ▼
+Frontend proxy
+  │
+  │ POST /payments
+  ▼
+API Gateway → Payment Request Service → RabbitMQ
+                                      → Payment Orchestrator → Mock Bank
+                                                               │ callback
+                                                               ▼
+                                                        Webhook Service
 ```
 
-Cuando se utiliza una URL absoluta, el API Gateway debe permitir el origen del
-frontend mediante CORS.
+## Running with the Full Platform
 
-## Build
+The recommended way to use the frontend is through the infrastructure
+repository:
 
 ```bash
-npm run build
-npm run preview
+cd ../infra
+docker compose pull
+docker compose up -d
 ```
 
-## Makefile
+Open:
 
-Los comandos disponibles siguen el patrón de los demás microservicios:
+```text
+http://localhost:8080
+```
+
+Inside the container, Nginx serves the React build and proxies `/api/*` to
+`http://api-gateway:8002/*`.
+
+## Local Development
+
+Requirements:
+
+- Node.js 22
+- npm
+- API Gateway running on `http://localhost:8003`
+
+Install dependencies:
 
 ```bash
 make install
-make dev
-make build
-make lint
-make test
-make docker-build
 ```
+
+Start Vite:
+
+```bash
+make dev
+```
+
+Open:
+
+```text
+http://localhost:5173
+```
+
+Vite proxies `/api/*` to `http://localhost:8003/*`, so local development does
+not require CORS changes in the API Gateway.
+
+## Submitted payment contract
+
+The form sends:
+
+```json
+{
+  "transaction_id": "123e4567-e89b-12d3-a456-426614174000",
+  "amount": 10000,
+  "currency": "COP",
+  "notification_url": "https://merchant.example/webhooks/payments",
+  "customer": {
+    "first_name": "Juan",
+    "last_name": "Bello",
+    "personal_id": "123456789"
+  }
+}
+```
+
+The browser generates `transaction_id`. While webhook configuration remains
+optional in the demo form, an empty value is replaced with
+`https://merchant.example/webhooks/payments` so the backend's required
+`notification_url` contract remains valid.
+
+## Configuration
+
+By default, browser requests use the relative `/api` path.
+
+To call a different API Gateway directly, create `.env.local`:
+
+```dotenv
+VITE_API_URL=http://localhost:8003
+```
+
+When using an absolute URL, the API Gateway must allow the frontend origin
+through CORS.
+
+## Available Commands
+
+```bash
+make install       # Install npm dependencies
+make dev           # Start the Vite development server
+make build         # Create the production build
+make lint          # Run the current build-based validation
+make test          # Run the current build smoke test
+make docker-build  # Build the local Docker image
+```
+
+Equivalent npm commands:
+
+```bash
+npm run dev
+npm run build
+npm run preview
+npm run test
+```
+
+The project currently uses a successful production build as its smoke test.
+Dedicated unit tests and ESLint rules have not yet been added.
 
 ## Docker
 
-La imagen compila React con Node.js y sirve los archivos estáticos con Nginx:
+Build the image:
 
 ```bash
 make docker-build
-docker run --name payment-frontend -p 8080:80 payment-frontend
 ```
 
-Dentro de la red de Docker, Nginx redirige `/api` al servicio
-`api-gateway:8002`.
+The Dockerfile has two stages:
 
-## GitHub Actions
+1. Node.js installs dependencies and creates the Vite production build.
+2. Nginx serves the generated static files and proxies API requests.
 
-El workflow `.github/workflows/main.yml` valida el build en pull requests. En
-cada push a `main`, además publica las imágenes `latest` y `${GITHUB_SHA}` en
-GitHub Container Registry bajo `ghcr.io/<owner>/<repository>`.
+Run the container in a network where `api-gateway` resolves as a service name:
+
+```bash
+docker run --rm --network infra_default -p 8080:80 payment-frontend
+```
+
+For the complete service-to-service setup, use the infrastructure Compose file
+instead of running this image by itself.
+
+Published image:
+
+```text
+ghcr.io/onyxpayments/payment-frontend:latest
+```
+
+## Project Structure
+
+```text
+.
+├── src
+│   ├── App.jsx         # Payment form and API request logic
+│   ├── main.jsx        # React entry point
+│   └── styles.css      # Responsive application styles
+├── index.html          # Vite HTML entry point
+├── vite.config.js      # Development server and API proxy
+├── nginx.conf          # Production static server and API proxy
+├── Dockerfile          # Multi-stage production image
+├── makefile
+└── package.json
+```
+
+## CI/CD
+
+GitHub Actions installs dependencies, validates the production build, builds
+the Docker image, and publishes these tags on pushes to `main`:
+
+```text
+ghcr.io/onyxpayments/payment-frontend:latest
+ghcr.io/onyxpayments/payment-frontend:<commit-sha>
+```
+
+Pull requests run the same validation and Docker build without publishing the
+image.
+
+## Current Limitations
+
+- The interface only displays the immediate `RECEIVED` response.
+- It does not poll for or display the final callback status.
+- There are no dedicated unit or end-to-end tests yet.
+- The production proxy expects the API Gateway to use the Compose service name
+  `api-gateway`.
+
+## Health probes
+
+Nginx exposes `/health/live`, `/health/startup`, and `/health/ready`. The
+frontend does not make readiness depend on the API Gateway, avoiding cascading
+failure when the backend is temporarily unavailable. `/health` remains
+available for backward compatibility.
