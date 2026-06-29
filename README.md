@@ -17,7 +17,6 @@ asynchronous acceptance response returned by the platform.
   `notification_url`.
 - Field-level validation for names, personal IDs, amounts, currencies, and
   webhook URLs.
-- Obsidian-inspired black and violet visual theme.
 - Basic HTML form validation.
 - Loading, success, and error states.
 - Development proxy for the local API Gateway.
