@@ -19,7 +19,6 @@ asynchronous acceptance response returned by the platform.
   webhook URLs.
 - Dynamic key/value request header editor with duplicate and injection
   validation.
-- Obsidian-inspired black and violet visual theme.
 - Basic HTML form validation.
 - Loading, success, and error states.
 - Development proxy for the local API Gateway.
