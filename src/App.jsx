@@ -4,6 +4,12 @@ import {
   buildPaymentPayload,
   validatePaymentForm,
 } from "./validation";
+import {
+  buildRequestHeaders,
+  emptyHeader,
+  hasHeaderErrors,
+  validateHeaderRows,
+} from "./requestHeaders";
 
 const API_URL = import.meta.env.VITE_API_URL || "/api";
 const DUMMY_NOTIFICATION_URL =
@@ -42,6 +48,8 @@ export default function App() {
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [touched, setTouched] = useState({});
+  const [headerRows, setHeaderRows] = useState([emptyHeader()]);
+  const [headerErrors, setHeaderErrors] = useState([{}]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   function handleChange(event) {
@@ -89,14 +97,41 @@ export default function App() {
     );
   }
 
+  function updateHeader(index, field, value) {
+    const nextRows = headerRows.map((row, rowIndex) =>
+      rowIndex === index ? { ...row, [field]: value } : row,
+    );
+    setHeaderRows(nextRows);
+    setHeaderErrors(validateHeaderRows(nextRows));
+    setError("");
+    setResult(null);
+  }
+
+  function addHeader() {
+    setHeaderRows((current) => [...current, emptyHeader()]);
+    setHeaderErrors((current) => [...current, {}]);
+  }
+
+  function removeHeader(index) {
+    const nextRows = headerRows.filter((_, rowIndex) => rowIndex !== index);
+    const rows = nextRows.length > 0 ? nextRows : [emptyHeader()];
+    setHeaderRows(rows);
+    setHeaderErrors(validateHeaderRows(rows));
+  }
+
   async function handleSubmit(event) {
     event.preventDefault();
     setError("");
     setResult(null);
 
     const validationErrors = validatePaymentForm(form);
-    if (Object.keys(validationErrors).length > 0) {
+    const nextHeaderErrors = validateHeaderRows(headerRows);
+    if (
+      Object.keys(validationErrors).length > 0 ||
+      hasHeaderErrors(nextHeaderErrors)
+    ) {
       setFieldErrors(validationErrors);
+      setHeaderErrors(nextHeaderErrors);
       setTouched(
         Object.fromEntries(
           Object.keys(initialForm).map((field) => [field, true]),
@@ -118,7 +153,7 @@ export default function App() {
     try {
       const response = await fetch(`${API_URL}/payments`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: buildRequestHeaders(headerRows),
         body: JSON.stringify(payload),
       });
 
@@ -289,6 +324,92 @@ export default function App() {
             />
             {fieldError("notificationUrl")}
           </label>
+
+          <div className="divider">
+            <span>Headers del API Gateway</span>
+          </div>
+
+          <div className="headers-editor">
+            <p className="headers-help">
+              Agrega headers personalizados. Para Basic Auth usa
+              <code>Authorization</code> y <code>Basic &lt;base64&gt;</code>.
+            </p>
+
+            {headerRows.map((header, index) => (
+              <div className="header-entry" key={index}>
+                <label>
+                  <span>Header</span>
+                  <input
+                    type="text"
+                    value={header.key}
+                    onChange={(event) =>
+                      updateHeader(index, "key", event.target.value)
+                    }
+                    placeholder="Authorization"
+                    aria-invalid={Boolean(headerErrors[index]?.key)}
+                    aria-describedby={
+                      headerErrors[index]?.key
+                        ? `header-key-${index}-error`
+                        : undefined
+                    }
+                  />
+                  {headerErrors[index]?.key && (
+                    <span
+                      className="field-error"
+                      id={`header-key-${index}-error`}
+                      role="alert"
+                    >
+                      {headerErrors[index].key}
+                    </span>
+                  )}
+                </label>
+
+                <label>
+                  <span>Value</span>
+                  <input
+                    type="text"
+                    value={header.value}
+                    onChange={(event) =>
+                      updateHeader(index, "value", event.target.value)
+                    }
+                    placeholder="Basic bWVyY2hhbnQ6c2VjcmV0LWtleQ=="
+                    aria-invalid={Boolean(headerErrors[index]?.value)}
+                    aria-describedby={
+                      headerErrors[index]?.value
+                        ? `header-value-${index}-error`
+                        : undefined
+                    }
+                  />
+                  {headerErrors[index]?.value && (
+                    <span
+                      className="field-error"
+                      id={`header-value-${index}-error`}
+                      role="alert"
+                    >
+                      {headerErrors[index].value}
+                    </span>
+                  )}
+                </label>
+
+                <button
+                  className="header-remove"
+                  type="button"
+                  onClick={() => removeHeader(index)}
+                  aria-label={`Eliminar header ${index + 1}`}
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+
+            <button
+              className="add-header-button"
+              type="button"
+              onClick={addHeader}
+            >
+              + Agregar header
+            </button>
+          </div>
 
           <button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Procesando…" : "Procesar pago"}

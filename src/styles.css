@@ -307,6 +307,65 @@ select[aria-invalid="true"] {
   content: "";
 }
 
+.headers-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.headers-help {
+  margin: -2px 0 2px;
+  color: #82788d;
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.headers-help code {
+  margin: 0 3px;
+  color: #c4a7f5;
+}
+
+.header-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr) 42px;
+  align-items: start;
+  gap: 10px;
+}
+
+button.header-remove {
+  width: 42px;
+  height: 52px;
+  margin: 21px 0 0;
+  border: 1px solid #3d304c;
+  color: #bcaec8;
+  background: #18141f;
+  box-shadow: none;
+  font-size: 22px;
+}
+
+button.header-remove:hover:not(:disabled) {
+  color: #fca5a5;
+  background: rgba(127, 29, 29, 0.2);
+  box-shadow: none;
+}
+
+button.add-header-button {
+  align-self: flex-start;
+  height: 40px;
+  margin: 0;
+  padding: 0 16px;
+  border: 1px solid #49375d;
+  color: #c4a7f5;
+  background: rgba(139, 92, 246, 0.08);
+  box-shadow: none;
+  font-size: 13px;
+}
+
+button.add-header-button:hover:not(:disabled) {
+  background: rgba(139, 92, 246, 0.16);
+  box-shadow: none;
+}
+
 button {
   display: flex;
   height: 54px;
@@ -443,5 +502,18 @@ button span {
 
   .amount-row {
     grid-template-columns: 1fr 110px;
+  }
+
+  .header-entry {
+    grid-template-columns: 1fr 42px;
+  }
+
+  .header-entry label:nth-child(2) {
+    grid-column: 1;
+  }
+
+  button.header-remove {
+    grid-row: 1;
+    grid-column: 2;
   }
 }

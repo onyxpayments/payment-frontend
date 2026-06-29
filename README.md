@@ -17,6 +17,9 @@ asynchronous acceptance response returned by the platform.
   `notification_url`.
 - Field-level validation for names, personal IDs, amounts, currencies, and
   webhook URLs.
+- Dynamic key/value request header editor with duplicate and injection
+  validation.
+- Obsidian-inspired black and violet visual theme.
 - Basic HTML form validation.
 - Loading, success, and error states.
 - Development proxy for the local API Gateway.
@@ -113,6 +116,39 @@ The browser generates `transaction_id`. While webhook configuration remains
 optional in the demo form, an empty value is replaced with
 `https://merchant.example/webhooks/payments` so the backend's required
 `notification_url` contract remains valid.
+
+## Testing API Gateway Basic authentication
+
+Enable Basic authentication in the infrastructure `.env`:
+
+```dotenv
+API_BASIC_AUTH_ENABLED=true
+API_BASIC_AUTH_USERNAME=merchant
+API_BASIC_AUTH_SECRET=secret-key
+```
+
+Restart the API Gateway with the updated image and configuration. Generate the
+encoded credential:
+
+```bash
+printf 'merchant:secret-key' | base64
+```
+
+In the frontend's **API Gateway headers** section, add:
+
+| Header | Value |
+| --- | --- |
+| `Authorization` | `Basic bWVyY2hhbnQ6c2VjcmV0LWtleQ==` |
+| `X-Correlation-ID` | `frontend-test-123` |
+
+Submit a valid payment. A successful request returns `202` and preserves
+`X-Correlation-ID` in the response. An incorrect Basic value returns `401`.
+Repeated requests beyond the configured limit return `429` with
+`Retry-After`.
+
+The editor accepts additional custom headers through **Add header**. Empty rows
+are ignored. Duplicate names, invalid names, newline injection, and
+browser-controlled headers are rejected before the request is sent.
 
 ## Configuration
 

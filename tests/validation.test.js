@@ -31,6 +31,17 @@ test("rejects digits and symbols in names", () => {
   assert.match(errors.lastName, /solo puede contener letras/);
 });
 
+test("rejects empty first and last names", () => {
+  const errors = validatePaymentForm({
+    ...validForm,
+    firstName: " ",
+    lastName: "",
+  });
+
+  assert.match(errors.firstName, /obligatorio/);
+  assert.match(errors.lastName, /obligatorio/);
+});
+
 test("rejects letters and invalid lengths in personal IDs", () => {
   const letters = validatePaymentForm({
     ...validForm,
